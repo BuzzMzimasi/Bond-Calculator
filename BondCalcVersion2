@@ -1,0 +1,177 @@
+from tkinter import *
+from tkinter import messagebox
+import re
+from tkinter import ttk
+
+def toggle_password_visibility():
+    if show_password_var.get():
+        password_entry.config(show="")
+    else:
+        password_entry.config(show="*")
+
+def validate_login_fields():
+    username = username_entry.get()
+    password = password_entry.get()
+
+    if not username or not password:
+        messagebox.showerror("Error", "Please fill in all fields.")
+        return
+
+    # Validate password format
+    if not re.match(r"^(?=.*[A-Z])(?=.*[a-z].*[a-z])(?=.*[^a-zA-Z0-9]).{5,10}$", password):
+        messagebox.showerror("Error", "Password must contain at least 1 uppercase letter, at least 2 lowercase letters, at least 1 special character, and be between 5 and 10 characters in length.")
+        return
+
+    save_login_info()
+    open_calculator()
+
+def clear_all_fields():
+    username_entry.delete(0, END)
+    password_entry.delete(0, END)
+
+def save_login_info():
+    username = username_entry.get()
+    password = password_entry.get()
+    with open("login_info.txt", "w") as file:
+        file.write(f"Username: {username}\n")
+        file.write(f"Password: {password}\n")
+
+def open_calculator():
+    calculator_window = Tk()
+    calculator_window.title("Interest Calculator")
+    calculator_window.geometry("400x400")
+    calculator_window.configure(background='#f0f0f0')
+
+    style = ttk.Style()
+    style.configure('TLabel', background='#f0f0f0', font=('Arial', 12))
+    style.configure('TEntry', font=('Arial', 12))
+    style.configure('TButton', font=('Arial', 12))
+    style.configure('TCombobox', font=('Arial', 12))
+
+    label1 = ttk.Label(calculator_window, text="Principal Amount (ZAR):")
+    label2 = ttk.Label(calculator_window, text="Rate (%):")
+    label3 = ttk.Label(calculator_window, text="Time (years):")
+    label4 = ttk.Label(calculator_window, text="Interest Type:")
+    label5 = ttk.Label(calculator_window, text="Interest Amount:")
+    label6 = ttk.Label(calculator_window, text="Total Amount (Principal + Interest):")
+
+    principal_var = DoubleVar()
+    principal_field = ttk.Entry(calculator_window, textvariable=principal_var)
+
+    rate_field = ttk.Entry(calculator_window)
+    time_field = ttk.Entry(calculator_window)
+    result_field = ttk.Entry(calculator_window, state='readonly')
+    total_amount_field = ttk.Entry(calculator_window, state='readonly')
+
+    interest_type = StringVar()
+    interest_type.set("Simple Interest")  # Default value
+
+    interest_dropdown = ttk.Combobox(calculator_window, textvariable=interest_type, values=["Simple Interest", "Compound Interest"])
+
+    def calculate_interest():
+        principal_text = principal_field.get()
+        rate_text = rate_field.get()
+        time_text = time_field.get()
+
+        if not principal_text or not rate_text or not time_text:
+            messagebox.showerror("Error", "Please fill in all fields.")
+            return
+
+        try:
+            principal = float(principal_text)
+            rate = float(rate_text)
+            time = float(time_text)
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numeric values for Principal, Rate, and Time.")
+            return
+
+        if principal <= 0 or rate <= 0 or time <= 0:
+            messagebox.showerror("Error", "Please enter positive values for Principal, Rate, and Time.")
+            return
+
+        # Update the value of interest_type
+        interest_type.set(interest_dropdown.get())
+
+        # Perform the calculation
+        if interest_type.get() == "Simple Interest":
+            simple_interest = (principal * rate * time) / 100
+            total_amount = principal + simple_interest
+            result_field.config(state='normal')
+            result_field.delete(0, END)
+            result_field.insert(0, "{:.2f}".format(simple_interest))
+            result_field.config(state='readonly')
+            total_amount_field.config(state='normal')
+            total_amount_field.delete(0, END)
+            total_amount_field.insert(0, "{:.2f}".format(total_amount))
+            total_amount_field.config(state='readonly')
+        elif interest_type.get() == "Compound Interest":
+            compound_interest = principal * (pow((1 + rate / 100), time)) - principal
+            total_amount = principal + compound_interest
+            result_field.config(state='normal')
+            result_field.delete(0, END)
+            result_field.insert(0, "{:.2f}".format(compound_interest))
+            result_field.config(state='readonly')
+            total_amount_field.config(state='normal')
+            total_amount_field.delete(0, END)
+            total_amount_field.insert(0, "{:.2f}".format(total_amount))
+            total_amount_field.config(state='readonly')
+
+        # Save calculation details to file
+        with open("calculation_info.txt", "a") as file:
+            file.write(f"Principal Amount: {principal}\n")
+            file.write(f"Rate: {rate}\n")
+            file.write(f"Time: {time}\n")
+            file.write(f"Interest Type: {interest_type.get()}\n")
+            file.write(f"Interest Amount: {result_field.get()}\n")
+            file.write(f"Total Amount: {total_amount_field.get()}\n\n")
+
+    calculate_button = ttk.Button(calculator_window, text="Calculate", command=calculate_interest)
+
+    label1.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+    label2.grid(row=2, column=0, padx=10, pady=10, sticky='w')
+    label3.grid(row=3, column=0, padx=10, pady=10, sticky='w')
+    label4.grid(row=4, column=0, padx=10, pady=10, sticky='w')
+    label5.grid(row=5, column=0, padx=10, pady=10, sticky='w')
+    label6.grid(row=6, column=0, padx=10, pady=10, sticky='w')
+
+    principal_field.grid(row=1, column=1, padx=10, pady=10)
+    rate_field.grid(row=2, column=1, padx=10, pady=10)
+    time_field.grid(row=3, column=1, padx=10, pady=10)
+    interest_dropdown.grid(row=4, column=1, padx=10, pady=10)
+    result_field.grid(row=5, column=1, padx=10, pady=10)
+    total_amount_field.grid(row=6, column=1, padx=10, pady=10)
+    calculate_button.grid(row=7, column=1, pady=10)
+
+    calculator_window.mainloop()
+
+def clear_all_and_restart():
+    clear_all_fields()
+    login_window.deiconify()
+
+login_window = Tk()
+login_window.title("Login Page")
+login_window.geometry("300x300")
+
+style = ttk.Style()
+style.configure('TLabel', background='#f0f0f0', font=('Arial', 12))
+style.configure('TEntry', font=('Arial', 12))
+style.configure('TButton', font=('Arial', 12))
+style.configure('TCombobox', font=('Arial', 12))
+
+username_label = ttk.Label(login_window, text="Username:")
+username_entry = ttk.Entry(login_window)
+password_label = ttk.Label(login_window, text="Password:")
+password_entry = ttk.Entry(login_window, show="*")
+show_password_var = BooleanVar()
+show_password_checkbox = ttk.Checkbutton(login_window, text="Show Password", variable=show_password_var, command=toggle_password_visibility)
+login_button = ttk.Button(login_window, text="Login", command=validate_login_fields)
+
+username_label.grid(row=0, column=0, padx=10, pady=10, sticky='w')
+username_entry.grid(row=0, column=1, padx=10, pady=10)
+password_label.grid(row=1, column=0, padx=10, pady=10, sticky='w')
+password_entry.grid(row=1, column=1, padx=10, pady=10)
+show_password_checkbox.grid(row=2, columnspan=2, padx=10, pady=5)
+login_button.grid(row=3, column=0, columnspan=2, pady=10)
+
+login_window.mainloop()
+
